@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="喵喵账本">
+<meta name="theme-color" content="#FFF8F0">
+<link rel="apple-touch-icon" href="icon.png">
+<title>喵喵账本</title>
+<style>
+  :root{
+    --bg:#FFF8F0; --card:#FFFFFF; --ink:#4A3728; --muted:#8C7868;
+    --accent:#F5A25D; --peach:#FDE4CB; --green:#7FB069; --red:#E2725B;
+    --line:#F0E4D8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+    padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 30px);
+    max-width:520px; margin:0 auto; min-height:100vh;
+    -webkit-user-select:none; user-select:none;
+  }
+  header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  header h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.5px}
+  header .cat{width:38px;height:38px;flex:0 0 38px}
+  .card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;
+    box-shadow:0 2px 14px rgba(180,140,100,.09)}
+  .label{font-size:12px;color:var(--muted);letter-spacing:1px}
+  /* 主额度 */
+  .hero{text-align:center;padding:22px 18px 20px}
+  .hero .big{font-size:56px;font-weight:700;line-height:1.05;letter-spacing:-2px;
+    font-variant-numeric:tabular-nums;transition:color .2s}
+  .hero .unit{font-size:20px;font-weight:500;color:var(--muted);margin-left:4px}
+  .hero .sub{font-size:13px;color:var(--muted);margin-top:8px}
+  .hero.over .big{color:var(--red)}
+  .catface{width:64px;height:64px;margin:0 auto 6px;display:block}
+  /* 快选 */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .btn{border:none;background:var(--peach);color:#8A5A2B;border-radius:14px;
+    padding:15px 0;font-size:17px;font-weight:600;font-family:inherit;
+    transition:transform .08s,background .15s}
+  .btn:active{transform:scale(.93);background:#F9D2AC}
+  .wbtn{grid-column:span 2;background:var(--ink);color:#FFF8F0}
+  .wbtn:active{background:#3A2A1E}
+  /* 列表 */
+  .row{display:flex;justify-content:space-between;align-items:center;
+    padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .row:last-child{border-bottom:none}
+  .row .t{color:var(--muted);font-size:12px;margin-left:8px}
+  .row .a{font-variant-numeric:tabular-nums;font-weight:600}
+  .del{background:none;border:none;color:var(--muted);font-size:15px;padding:0 0 0 12px}
+  .empty{font-size:13px;color:var(--muted);text-align:center;padding:14px 0}
+  /* 花呗 */
+  .bar{height:12px;background:#EBDED2;border-radius:6px;overflow:hidden;margin:12px 0 10px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--green));
+    border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  #hbLeft{font-size:22px;font-variant-numeric:tabular-nums}
+  #hbLeft::after{content:' 元';font-size:12px;color:var(--muted);font-weight:400}
+  .kv{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+  .kv b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .ghost{width:100%;margin-top:14px;background:var(--bg);border:1.5px dashed var(--peach);
+    color:#8A5A2B;border-radius:14px;padding:13px;font-size:15px;font-weight:600;font-family:inherit}
+  .ghost:active{background:var(--peach)}
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 34px);
+    transform:translateX(-50%) translateY(20px);background:var(--ink);color:#FFF8F0;
+    padding:11px 22px;border-radius:22px;font-size:14px;opacity:0;pointer-events:none;
+    transition:all .28s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .foot{display:flex;gap:10px;margin-top:4px}
+  .foot button{flex:1;background:none;border:none;color:var(--muted);font-size:12px;
+    font-family:inherit;padding:12px 0}
+  .pop{animation:pop .3s}
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.09)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="cat" viewBox="0 0 100 100"><use href="#face"/></svg>
+  <h1>喵喵账本</h1>
+</header>
+
+<!-- 本周额度 -->
+<div class="card hero" id="hero">
+  <svg class="catface" viewBox="0 0 100 100"><use href="#face" id="faceUse"/></svg>
+  <div class="label">本周饭钱还剩</div>
+  <div><span class="big" id="weekLeft">60</span><span class="unit">元</span></div>
+  <div class="sub" id="weekSub">日均 8.5 · 到周日还有 5 天</div>
+</div>
+
+<!-- 记账 -->
+<div class="card">
+  <div class="label" style="margin-bottom:11px">花了一笔</div>
+  <div class="grid">
+    <button class="btn" data-a="5">5</button>
+    <button class="btn" data-a="10">10</button>
+    <button class="btn" data-a="20">20</button>
+    <button class="btn" data-a="30">30</button>
+    <button class="btn wbtn" id="custom">其他金额</button>
+    <button class="btn wbtn" id="payBtn" style="background:#7FB069">还花呗</button>
+  </div>
+</div>
+
+<!-- 今日流水 -->
+<div class="card">
+  <div class="label" style="margin-bottom:6px">今天</div>
+  <div id="list"><div class="empty">今天还没花钱，喵～</div></div>
+</div>
+
+<!-- 花呗 -->
+<div class="card">
+  <div class="kv"><span class="label">花呗欠款</span><b id="hbLeft" style="font-size:20px">3000</b></div>
+  <div class="bar"><i id="hbBar" style="width:0%"></i></div>
+  <div class="kv"><span>已还 <b id="hbPaid">0</b> / 3000</span><span id="hbEta">约 5 个月清零</span></div>
+  <button class="ghost" id="setBtn">⚙︎ 设置（收入 / 房租 / 预算）</button>
+</div>
+
+<div class="foot">
+  <button id="expBtn">导出数据</button>
+  <button id="impBtn">导入数据</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ---------- 猫脸 SVG（三种表情） ---------- */
+const FACE = `
+<defs>
+  <g id="face">
+    <path d="M24 38 L18 10 L44 24 Z" fill="#F5A25D"/>
+    <path d="M24 38 L22 18 L38 26 Z" fill="#FCC4A0"/>
+    <path d="M76 38 L82 10 L56 24 Z" fill="#F5A25D"/>
+    <path d="M76 38 L78 18 L62 26 Z" fill="#FCC4A0"/>
+    <circle cx="50" cy="54" r="32" fill="#FBBF7E"/>
+    <ellipse cx="50" cy="66" rx="18" ry="13" fill="#FDE4CB"/>
+    <g id="eyes">
+      <circle cx="39" cy="50" r="4.6" fill="#4A3728"/>
+      <circle cx="61" cy="50" r="4.6" fill="#4A3728"/>
+      <circle cx="40.6" cy="48.4" r="1.5" fill="#fff"/>
+      <circle cx="62.6" cy="48.4" r="1.5" fill="#fff"/>
+    </g>
+    <g id="eyesHappy" style="display:none">
+      <path d="M34 52 q5 -7 10 0" stroke="#4A3728" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M56 52 q5 -7 10 0" stroke="#4A3728" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <g id="eyesSad" style="display:none">
+      <path d="M34 48 q5 5 10 0" stroke="#4A3728" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M56 48 q5 5 10 0" stroke="#4A3728" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <path d="M47 61 l-3.4 3 h6.8 z" fill="#E8825A"/>
+    <g id="mouth">
+      <path d="M50 65 q-5 8 -9 3" stroke="#4A3728" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M50 65 q5 8 9 3" stroke="#4A3728" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+    <g stroke="#D9A882" stroke-width="1.8" stroke-linecap="round">
+      <path d="M14 58 L28 60"/><path d="M14 66 L28 65"/>
+      <path d="M86 58 L72 60"/><path d="M86 66 L72 65"/>
+    </g>
+    <ellipse cx="30" cy="64" rx="6" ry="3.6" fill="#F7A8A0" opacity=".55"/>
+    <ellipse cx="70" cy="64" rx="6" ry="3.6" fill="#F7A8A0" opacity=".55"/>
+  </g>
+</defs>`;
+document.body.insertAdjacentHTML('afterbegin','<svg width="0" height="0" style="position:absolute">'+FACE+'</svg>');
+
+/* ---------- 状态 ---------- */
+const DEF = {
+  hb: 3000,          // 花呗初始欠款
+  paid: 0,           // 已还累计
+  weekBudget: 60,    // 本周饭钱预算
+  monthPlan: 590,    // 每月打算还
+  logs: [],          // {t, a}
+  pays: []           // {t, a}
+};
+let S;
+try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem('meow') || '{}')); }
+catch(e){ S = Object.assign({}, DEF); }
+if(!Array.isArray(S.logs)) S.logs = [];
+if(!Array.isArray(S.pays)) S.pays = [];
+const save = () => localStorage.setItem('meow', JSON.stringify(S));
+
+/* ---------- 时间工具 ---------- */
+const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); };
+const startOfWeek = () => { // 周一为一周开始
+  const x = new Date(); x.setHours(0,0,0,0);
+  const w = (x.getDay() + 6) % 7; // 周一=0
+  x.setDate(x.getDate() - w);
+  return x.getTime();
+};
+const today = () => startOfDay(new Date());
+const DAY = 86400000;
+
+/* ---------- 计算 ---------- */
+function weekSpent(){
+  const s = startOfWeek();
+  return S.logs.filter(l => l.t >= s).reduce((a,l) => a + l.a, 0);
+}
+function weekLeft(){ return S.weekBudget - weekSpent(); }
+function daysLeftInWeek(){
+  const s = startOfWeek();
+  const done = Math.floor((today() - s) / DAY);     // 周一=0
+  return 7 - done;                                   // 含今天
+}
+
+/* ---------- 渲染 ---------- */
+const $ = id => document.getElementById(id);
+
+function setFace(mood){
+  $('eyes').style.display      = mood === 'n' ? '' : 'none';
+  $('eyesHappy').style.display = mood === 'h' ? '' : 'none';
+  $('eyesSad').style.display   = mood === 's' ? '' : 'none';
+  $('mouth').style.display     = '';
+}
+
+function render(){
+  const left = weekLeft();
+  const dl = daysLeftInWeek();
+  const over = left < 0;
+
+  $('hero').classList.toggle('over', over);
+  $('weekLeft').textContent = left.toFixed(left % 1 ? 1 : 0);
+  const per = left / dl;
+  $('weekSub').textContent = over
+    ? `超了 ${Math.abs(left).toFixed(1)} 元，本周剩下的日子只能啃馒头了喵`
+    : `日均 ${per.toFixed(1)} 元 · 到周日还有 ${dl} 天`;
+  setFace(over ? 's' : (left > S.weekBudget * 0.5 ? 'h' : 'n'));
+
+  // 今日流水
+  const t0 = today();
+  const todays = S.logs.filter(l => l.t >= t0).sort((a,b) => b.t - a.t);
+  const list = $('list');
+  if(!todays.length){
+    list.innerHTML = '<div class="empty">今天还没花钱，喵～</div>';
+  } else {
+    list.innerHTML = todays.map(l => {
+      const d = new Date(l.t);
+      const hm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `<div class="row"><span>${l.note || '花费'}<span class="t">${hm}</span></span>
+        <span><span class="a">−${l.a}</span>
+        <button class="del" data-del="${l.t}">✕</button></span></div>`;
+    }).join('');
+  }
+
+  // 花呗
+  const hbLeft = Math.max(0, S.hb - S.paid);
+  $('hbLeft').textContent = hbLeft.toFixed(0);
+  $('hbPaid').textContent = S.paid.toFixed(0);
+  $('hbBar').style.width = (S.hb ? Math.min(100, S.paid / S.hb * 100) : 0) + '%';
+  const months = S.monthPlan > 0 ? Math.ceil(hbLeft / S.monthPlan) : 0;
+  $('hbEta').textContent = hbLeft <= 0 ? '已还清 🎉' : `约 ${months} 个月清零`;
+
+  save();
+}
+
+/* ---------- 交互 ---------- */
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('on'), 1600);
+}
+
+function addSpend(amount, note){
+  S.logs.push({ t: Date.now(), a: Number(amount), note: note || '' });
+  render();
+  const left = weekLeft();
+  const el = $('weekLeft');
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  $('faceUse').closest('svg').classList.add('pop');
+  (left < 0 ? toast('喵…超支了') : toast(left < 10 ? '快见底了喵' : '喵～记下了'));
+}
+
+document.querySelectorAll('[data-a]').forEach(b => {
+  b.onclick = () => addSpend(Number(b.dataset.a));
+});
+
+$('custom').onclick = () => {
+  const v = prompt('花了多少？', '');
+  if(v === null) return;
+  const n = parseFloat(v);
+  if(isNaN(n) || n <= 0) return toast('数字不对喵');
+  addSpend(n, '');
+};
+
+$('payBtn').onclick = () => {
+  const v = prompt('这月还了花呗多少？\n（建议 590，别低于 300）', String(S.monthPlan));
+  if(v === null) return;
+  const n = parseFloat(v);
+  if(isNaN(n) || n <= 0) return toast('数字不对喵');
+  S.paid += n;
+  S.pays.push({ t: Date.now(), a: n });
+  render();
+  const left = Math.max(0, S.hb - S.paid);
+  toast(left <= 0 ? '花呗还清了！喵！' : `还剩 ${left.toFixed(0)} 元`);
+};
+
+$('list').onclick = e => {
+  const t = e.target.dataset && e.target.dataset.del;
+  if(!t) return;
+  S.logs = S.logs.filter(l => String(l.t) !== String(t));
+  render(); toast('删掉了');
+};
+
+$('setBtn').onclick = () => {
+  const wb = prompt('本周饭钱预算（元）', S.weekBudget);
+  if(wb !== null && !isNaN(parseFloat(wb))) S.weekBudget = parseFloat(wb);
+  const mp = prompt('每月打算还花呗多少（元）', S.monthPlan);
+  if(mp !== null && !isNaN(parseFloat(mp))) S.monthPlan = parseFloat(mp);
+  const hb = prompt('花呗当前欠款（元）', S.hb);
+  if(hb !== null && !isNaN(parseFloat(hb))) { S.hb = parseFloat(hb); S.paid = 0; }
+  render();
+};
+
+$('expBtn').onclick = async () => {
+  const txt = JSON.stringify(S);
+  try { await navigator.clipboard.writeText(txt); toast('已复制，存到备忘录里'); }
+  catch(e){ prompt('复制下面这段备份：', txt); }
+};
+
+$('impBtn').onclick = () => {
+  const v = prompt('粘贴备份的 JSON：', '');
+  if(!v) return;
+  try{
+    const o = JSON.parse(v);
+    if(!o || typeof o !== 'object') throw 0;
+    S = Object.assign({}, DEF, o);
+    if(!Array.isArray(S.logs)) S.logs = [];
+    if(!Array.isArray(S.pays)) S.pays = [];
+    render(); toast('已导入');
+  } catch(e){ toast('格式不对喵'); }
+};
+
+/* 跨天自动刷新 */
+let lastDay = today();
+setInterval(() => {
+  if(today() !== lastDay){ lastDay = today(); render(); }
+}, 30000);
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && today() !== lastDay){ lastDay = today(); render(); }
+  if(!document.hidden) render();
+});
+
+render();
+
+/* ---------- 自检 ---------- */
+if(location.hash === '#measure'){
+  const cw = document.documentElement.clientWidth;
+  const pick = ['.card', '.grid', '.grid .btn:nth-child(4)', '.wbtn', '#hbEta', '#toast', 'header'];
+  const rows = pick.map(sel => {
+    const e = document.querySelector(sel);
+    if(!e) return sel + '=MISSING';
+    const r = e.getBoundingClientRect();
+    return sel + ' L' + Math.round(r.left) + ' R' + Math.round(r.right) + ' W' + Math.round(r.width);
+  });
+  const over = [...document.querySelectorAll('body *')].filter(e => {
+    const r = e.getBoundingClientRect(); return r.right > cw + 1 && r.width > 0;
+  }).length;
+  document.title = 'VW=' + cw + ' SW=' + document.body.scrollWidth + ' OVER=' + over + ' :: ' + rows.join(' | ');
+  document.body.innerHTML = '<pre id=m>' + document.title + '</pre>';
+}
+
+// ponytail: 单文件 PWA 只做本地账目，不做多设备同步
+if(location.hash === '#test'){
+  const out = [];
+  const eq = (a,b,m) => out.push((a===b?'PASS ':'FAIL ')+m+' ('+a+')');
+  S = Object.assign({}, DEF); S.logs = []; S.pays = [];
+  addSpend(20); eq(weekSpent(), 20, '记一笔20');
+  eq(weekLeft(), 40, '周预算60剩40');
+  addSpend(10); eq(weekLeft(), 30, '再记10剩30');
+  S.logs.push({t: startOfWeek()-DAY, a:999}); eq(weekSpent(), 30, '上周的钱不算本周');
+  S = Object.assign({}, DEF); S.paid = 590;
+  eq(S.hb - S.paid, 2410, '花呗递减');
+  eq(Math.ceil(2410/S.monthPlan), 5, '预计月数');
+  document.body.innerHTML = '<pre style="font:13px monospace;white-space:pre-wrap">'
+    + out.join('\n') + '</pre>';
+}
+</script>
+</body>
+</html>
